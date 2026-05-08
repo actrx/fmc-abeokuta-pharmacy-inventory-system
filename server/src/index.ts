@@ -25,6 +25,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/transfers', transfersRoutes);
 
+app.get('/api/departments', async (req: Request, res: Response) => {
+  try {
+    const departments = await prisma.department.findMany();
+    res.json(departments);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching departments' });
+  }
+});
+
 // Start Server
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
