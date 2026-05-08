@@ -20,7 +20,7 @@
 ---
 
 # Phase 3 — Authentication
-- User login
+
 - JWT authentication
 - Password hashing
 - Role-based access control

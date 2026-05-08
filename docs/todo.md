@@ -1,7 +1,7 @@
 # Project TODO
 
 ## Authentication
-- [ ] Login API
+
 - [ ] JWT middleware
 - [ ] Role permissions
 

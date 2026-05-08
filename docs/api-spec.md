@@ -2,16 +2,6 @@
 
 ---
 
-# Authentication Endpoints
-
-## POST /api/auth/login
-Login user
-
-## POST /api/auth/register
-Register new user
-
----
-
 # Inventory Endpoints
 
 ## GET /api/inventory
