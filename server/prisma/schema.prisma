@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id             String           @id @default(uuid())
+  name           String
+  type           String // Main Store, Sub Store, Dispensary
+  createdAt      DateTime         @default(now()) @map("created_at")
+  users          User[]
+  inventoryItems InventoryItem[]
+  transfersFrom  Transfer[]       @relation("FromDepartment")
+  transfersTo    Transfer[]       @relation("ToDepartment")
+
+  @@map("departments")
+}
+
+model User {
+  id             String       @id @default(uuid())
+  fullName       String       @map("full_name")
+  email          String       @unique
+  passwordHash   String       @map("password_hash")
+  role           String // Admin, Main Store Officer, Sub Store Officer, Dispensary Officer
+  departmentId   String       @map("department_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  department     Department   @relation(fields: [departmentId], references: [id])
+  transfersMade  Transfer[]   @relation("TransferredBy")
+  transfersRecv  Transfer[]   @relation("ReceivedBy")
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model InventoryItem {
+  id             String           @id @default(uuid())
+  name           String
+  genericName    String           @map("generic_name")
+  category       String
+  unitType       String           @map("unit_type")
+  departmentId   String           @map("department_id")
+  reorderLevel   Int              @default(0) @map("reorder_level")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  department     Department       @relation(fields: [departmentId], references: [id])
+  batches        InventoryBatch[]
+  reorderAlerts  ReorderAlert[]
+
+  @@map("inventory_items")
+}
+
+model InventoryBatch {
+  id               String             @id @default(uuid())
+  inventoryItemId  String             @map("inventory_item_id")
+  batchNumber      String             @map("batch_number")
+  expiryDate       DateTime           @map("expiry_date")
+  quantity         Int                @default(0)
+  costPrice        Float              @map("cost_price")
+  profitMargin     Float              @map("profit_margin")
+  sellingPrice     Float              @map("selling_price")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  inventoryItem    InventoryItem      @relation(fields: [inventoryItemId], references: [id])
+  transferItems    TransferItem[]
+  stockAdjustments StockAdjustment[]
+
+  @@map("inventory_batches")
+}
+
+model Transfer {
+  id               String         @id @default(uuid())
+  fromDepartmentId String         @map("from_department_id")
+  toDepartmentId   String         @map("to_department_id")
+  status           String // Pending, Approved, Received, Rejected, Cancelled
+  transferredById  String         @map("transferred_by")
+  receivedById     String?        @map("received_by")
+  transferDate     DateTime       @default(now()) @map("transfer_date")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  fromDepartment   Department     @relation("FromDepartment", fields: [fromDepartmentId], references: [id])
+  toDepartment     Department     @relation("ToDepartment", fields: [toDepartmentId], references: [id])
+  transferredBy    User           @relation("TransferredBy", fields: [transferredById], references: [id])
+  receivedBy       User?          @relation("ReceivedBy", fields: [receivedById], references: [id])
+  transferItems    TransferItem[]
+
+  @@map("transfers")
+}
+
+model TransferItem {
+  id             String         @id @default(uuid())
+  transferId     String         @map("transfer_id")
+  batchId        String         @map("batch_id")
+  quantity       Int
+  createdAt      DateTime       @default(now()) @map("created_at")
+  transfer       Transfer       @relation(fields: [transferId], references: [id])
+  batch          InventoryBatch @relation(fields: [batchId], references: [id])
+
+  @@map("transfer_items")
+}
+
+model ReorderAlert {
+  id               String         @id @default(uuid())
+  inventoryItemId  String         @map("inventory_item_id")
+  currentQuantity  Int            @map("current_quantity")
+  reorderLevel     Int            @map("reorder_level")
+  status           String         @default("Active") // Active, Resolved
+  createdAt        DateTime       @default(now()) @map("created_at")
+  inventoryItem    InventoryItem  @relation(fields: [inventoryItemId], references: [id])
+
+  @@map("reorder_alerts")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  action     String
+  entity     String
+  entityId   String   @map("entity_id")
+  timestamp  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model StockAdjustment {
+  id             String         @id @default(uuid())
+  batchId        String         @map("batch_id")
+  adjustmentType String         @map("adjustment_type") // Addition, Deduction, Write-Off
+  quantity       Int
+  reason         String
+  adjustedBy     String         @map("adjusted_by")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  batch          InventoryBatch @relation(fields: [batchId], references: [id])
+
+  @@map("stock_adjustments")
+}
