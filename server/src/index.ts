@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 
-import authRoutes from './modules/auth/auth.route';
+
 import inventoryRoutes from './modules/inventory/inventory.route';
 import transfersRoutes from './modules/transfers/transfers.route';
 
@@ -21,7 +21,6 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Register Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/transfers', transfersRoutes);
 
