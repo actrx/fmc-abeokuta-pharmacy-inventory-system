@@ -21,9 +21,7 @@ const createBatchSchema = z.object({
 
 export const getItems = async (req: Request, res: Response) => {
   try {
-    const department = await prisma.department.findFirst();
-    const departmentId = (req.query.departmentId as string) || department?.id;
-    if (!departmentId) return res.status(400).json({ message: 'No department found' });
+    const departmentId = (req as any).user.departmentId;
     const items = await prisma.inventoryItem.findMany({
       where: { departmentId },
       include: {
@@ -42,9 +40,7 @@ export const getItems = async (req: Request, res: Response) => {
 
 export const createItem = async (req: Request, res: Response) => {
   try {
-    const department = await prisma.department.findFirst();
-    const departmentId = req.body.departmentId || department?.id;
-    if (!departmentId) return res.status(400).json({ message: 'No department found' });
+    const departmentId = (req as any).user.departmentId;
     const data = createItemSchema.parse(req.body);
 
     const newItem = await prisma.inventoryItem.create({
