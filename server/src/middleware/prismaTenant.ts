@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { requestContext } from './requestContext';
 
 /**
@@ -30,7 +30,7 @@ const TENANTED_MODELS = new Set([
  * - update/delete → spread tenantId into args.where
  */
 export function registerTenantMiddleware(prisma: PrismaClient) {
-  prisma.$use(async (params: Prisma.MiddlewareParams, next) => {
+  prisma.$use(async (params: any, next: any) => {
     const ctx = requestContext.getStore();
 
     // If no context (e.g., seed scripts, tenant creation), skip

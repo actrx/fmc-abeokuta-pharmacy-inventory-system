@@ -54,7 +54,7 @@ export async function createTransfer(
   }
 
   // 4. Execute within a transaction
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: any) => {
     const transfer = await tx.transfer.create({
       data: {
         fromDepartmentId: data.fromDepartmentId,

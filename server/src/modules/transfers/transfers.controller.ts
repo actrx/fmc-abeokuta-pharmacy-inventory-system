@@ -31,7 +31,7 @@ export const createTransfer = async (req: Request, res: Response) => {
     }
 
     // Execute transfer creation within a transaction
-    const transfer = await prisma.$transaction(async (tx) => {
+    const transfer = await prisma.$transaction(async (tx: any) => {
       // Create transfer record
       const newTransfer = await tx.transfer.create({
         data: {
@@ -91,7 +91,7 @@ export const approveTransfer = async (req: Request, res: Response) => {
     // In a real scenario, the receiving department would "Receive" the items. 
     // Here we just mark it received/approved and log it.
     // The items need to be moved to the new department's inventory.
-    const receivedTransfer = await prisma.$transaction(async (tx) => {
+    const receivedTransfer = await prisma.$transaction(async (tx: any) => {
       const updatedTransfer = await tx.transfer.update({
         where: { id: transferId },
         data: {

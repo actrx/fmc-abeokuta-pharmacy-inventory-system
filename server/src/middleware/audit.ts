@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { requestContext } from './requestContext';
 import { rawPrisma } from '../prisma/rawPrisma';
 
@@ -15,7 +15,7 @@ import { rawPrisma } from '../prisma/rawPrisma';
 export function registerAuditMiddleware(prisma: PrismaClient) {
   const LOGGED_ACTIONS = new Set(['create', 'update', 'delete']);
 
-  prisma.$use(async (params: Prisma.MiddlewareParams, next) => {
+  prisma.$use(async (params: any, next: any) => {
     const result = await next(params);
 
     // Skip audit logging for the AuditLog model (prevents recursion)

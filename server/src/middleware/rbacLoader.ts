@@ -28,7 +28,7 @@ export function createRbacLoader(prisma: PrismaClient) {
         return res.status(403).json({ error: `Role "${ctx.role}" not found for this tenant` });
       }
 
-      ctx.permissions = new Set(role.permissions.map((p) => p.action));
+      ctx.permissions = new Set(role.permissions.map((p: { action: string }) => p.action));
 
       // Also attach to req for backward compat
       (req as any).user = {
