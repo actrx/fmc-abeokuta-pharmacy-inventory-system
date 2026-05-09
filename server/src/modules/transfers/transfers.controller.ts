@@ -110,6 +110,7 @@ export const approveTransfer = async (req: Request, res: Response) => {
         
         await tx.auditLog.create({
           data: {
+            tenantId: user.tenantId,
             userId: user.id,
             action: 'RECEIVE_TRANSFER',
             entity: 'Transfer',

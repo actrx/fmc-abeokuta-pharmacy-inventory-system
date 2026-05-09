@@ -43,10 +43,12 @@ export const createItem = async (req: Request, res: Response) => {
     const departmentId = (req as any).user.departmentId;
     const data = createItemSchema.parse(req.body);
 
+    const tenantId = (req as any).user.tenantId;
     const newItem = await prisma.inventoryItem.create({
       data: {
         ...data,
-        departmentId
+        departmentId,
+        tenantId
       }
     });
 
@@ -64,6 +66,7 @@ export const createBatch = async (req: Request, res: Response) => {
     const data = createBatchSchema.parse(req.body);
     const sellingPrice = data.costPrice + ((data.profitMargin / 100) * data.costPrice);
 
+    const tenantId = (req as any).user.tenantId;
     const newBatch = await prisma.inventoryBatch.create({
       data: {
         inventoryItemId: data.inventoryItemId,
@@ -72,7 +75,8 @@ export const createBatch = async (req: Request, res: Response) => {
         quantity: data.quantity,
         costPrice: data.costPrice,
         profitMargin: data.profitMargin,
-        sellingPrice
+        sellingPrice,
+        tenantId
       }
     });
 
