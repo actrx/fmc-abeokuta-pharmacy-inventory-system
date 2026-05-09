@@ -7,16 +7,68 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Tenant ───────────────────────────────────────────────────
+
+model Tenant {
+  id          String       @id @default(uuid())
+  name        String
+  createdAt   DateTime     @default(now()) @map("created_at")
+  users       User[]
+  departments Department[]
+  roles       Role[]
+  permissions Permission[]
+
+  @@map("tenants")
+}
+
+// ─── RBAC ─────────────────────────────────────────────────────
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String
+  tenantId    String       @map("tenant_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  permissions Permission[] @relation("RolePermissions")
+  users       User[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, name])
+  @@index([tenantId, id])
+  @@map("roles")
+}
+
+model Permission {
+  id        String   @id @default(uuid())
+  action    String
+  tenantId  String   @map("tenant_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  roles     Role[]   @relation("RolePermissions")
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, action])
+  @@index([tenantId, id])
+  @@map("permissions")
+}
+
+// ─── Core Models ──────────────────────────────────────────────
+
 model Department {
   id             String           @id @default(uuid())
   name           String
   type           String // Main Store, Sub Store, Dispensary
+  tenantId       String           @map("tenant_id")
   createdAt      DateTime         @default(now()) @map("created_at")
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
   users          User[]
   inventoryItems InventoryItem[]
   transfersFrom  Transfer[]       @relation("FromDepartment")
   transfersTo    Transfer[]       @relation("ToDepartment")
 
+  @@unique([id, tenantId])
+  @@unique([tenantId, name])
+  @@index([tenantId, id])
   @@map("departments")
 }
 
@@ -25,14 +77,20 @@ model User {
   fullName       String       @map("full_name")
   email          String       @unique
   passwordHash   String       @map("password_hash")
-  role           String // Admin, Main Store Officer, Sub Store Officer, Dispensary Officer
+  role           String // kept as string for backward compat
+  roleId         String?      @map("role_id")
+  tenantId       String       @map("tenant_id")
   departmentId   String       @map("department_id")
   createdAt      DateTime     @default(now()) @map("created_at")
   department     Department   @relation(fields: [departmentId], references: [id])
+  roleRef        Role?        @relation(fields: [roleId], references: [id])
   transfersMade  Transfer[]   @relation("TransferredBy")
   transfersRecv  Transfer[]   @relation("ReceivedBy")
   auditLogs      AuditLog[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId, id])
+  @@index([tenantId, email])
   @@map("users")
 }
 
@@ -43,12 +101,16 @@ model InventoryItem {
   category       String
   unitType       String           @map("unit_type")
   departmentId   String           @map("department_id")
+  tenantId       String           @map("tenant_id")
   reorderLevel   Int              @default(0) @map("reorder_level")
   createdAt      DateTime         @default(now()) @map("created_at")
   department     Department       @relation(fields: [departmentId], references: [id])
   batches        InventoryBatch[]
   reorderAlerts  ReorderAlert[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId, id])
+  @@index([tenantId, departmentId])
   @@map("inventory_items")
 }
 
@@ -61,11 +123,15 @@ model InventoryBatch {
   costPrice        Float              @map("cost_price")
   profitMargin     Float              @map("profit_margin")
   sellingPrice     Float              @map("selling_price")
+  tenantId         String             @map("tenant_id")
   createdAt        DateTime           @default(now()) @map("created_at")
   inventoryItem    InventoryItem      @relation(fields: [inventoryItemId], references: [id])
   transferItems    TransferItem[]
   stockAdjustments StockAdjustment[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId, id])
+  @@index([tenantId, expiryDate])
   @@map("inventory_batches")
 }
 
@@ -76,6 +142,7 @@ model Transfer {
   status           String // Pending, Approved, Received, Rejected, Cancelled
   transferredById  String         @map("transferred_by")
   receivedById     String?        @map("received_by")
+  tenantId         String         @map("tenant_id")
   transferDate     DateTime       @default(now()) @map("transfer_date")
   createdAt        DateTime       @default(now()) @map("created_at")
   fromDepartment   Department     @relation("FromDepartment", fields: [fromDepartmentId], references: [id])
@@ -84,6 +151,9 @@ model Transfer {
   receivedBy       User?          @relation("ReceivedBy", fields: [receivedById], references: [id])
   transferItems    TransferItem[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId, id])
+  @@index([tenantId, createdAt])
   @@map("transfers")
 }
 
@@ -92,10 +162,13 @@ model TransferItem {
   transferId     String         @map("transfer_id")
   batchId        String         @map("batch_id")
   quantity       Int
+  tenantId       String         @map("tenant_id")
   createdAt      DateTime       @default(now()) @map("created_at")
   transfer       Transfer       @relation(fields: [transferId], references: [id])
   batch          InventoryBatch @relation(fields: [batchId], references: [id])
 
+  @@unique([id, tenantId])
+  @@index([tenantId, id])
   @@map("transfer_items")
 }
 
@@ -105,9 +178,12 @@ model ReorderAlert {
   currentQuantity  Int            @map("current_quantity")
   reorderLevel     Int            @map("reorder_level")
   status           String         @default("Active") // Active, Resolved
+  tenantId         String         @map("tenant_id")
   createdAt        DateTime       @default(now()) @map("created_at")
   inventoryItem    InventoryItem  @relation(fields: [inventoryItemId], references: [id])
 
+  @@unique([id, tenantId])
+  @@index([tenantId, id])
   @@map("reorder_alerts")
 }
 
@@ -117,9 +193,13 @@ model AuditLog {
   action     String
   entity     String
   entityId   String   @map("entity_id")
+  tenantId   String   @map("tenant_id")
   timestamp  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id])
 
+  @@unique([id, tenantId])
+  @@index([tenantId, id])
+  @@index([tenantId, timestamp])
   @@map("audit_logs")
 }
 
@@ -130,8 +210,11 @@ model StockAdjustment {
   quantity       Int
   reason         String
   adjustedBy     String         @map("adjusted_by")
+  tenantId       String         @map("tenant_id")
   createdAt      DateTime       @default(now()) @map("created_at")
   batch          InventoryBatch @relation(fields: [batchId], references: [id])
 
+  @@unique([id, tenantId])
+  @@index([tenantId, id])
   @@map("stock_adjustments")
 }

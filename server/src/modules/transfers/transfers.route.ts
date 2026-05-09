@@ -1,12 +1,13 @@
 import express from 'express';
 import { createTransfer, approveTransfer } from './transfers.controller';
-import { protect, authorize } from '../../middleware/auth.middleware';
+import { requirePermission } from '../../middleware/rbac';
 
 const router = express.Router();
 
-router.use(protect); // All transfer routes require auth
+// Auth + RBAC are already applied at the app level in index.ts
+// Here we only add route-specific permission checks
 
-router.post('/', authorize('Main Store Officer', 'Sub Store Officer', 'Dispensary Officer'), createTransfer);
-router.post('/:transferId/approve', authorize('Sub Store Officer', 'Dispensary Officer'), approveTransfer);
+router.post('/', requirePermission('TRANSFER_CREATE'), createTransfer);
+router.post('/:transferId/approve', requirePermission('TRANSFER_APPROVE'), approveTransfer);
 
 export default router;
